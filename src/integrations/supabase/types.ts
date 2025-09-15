@@ -240,6 +240,45 @@ export type Database = {
           },
         ]
       }
+      pastes: {
+        Row: {
+          burn_after_reading: boolean
+          content: string
+          created_at: string
+          expiration: string
+          expires_at: string | null
+          id: string
+          language: string
+          password_hash: string | null
+          view_count: number
+          viewed: boolean
+        }
+        Insert: {
+          burn_after_reading?: boolean
+          content: string
+          created_at?: string
+          expiration?: string
+          expires_at?: string | null
+          id?: string
+          language?: string
+          password_hash?: string | null
+          view_count?: number
+          viewed?: boolean
+        }
+        Update: {
+          burn_after_reading?: boolean
+          content?: string
+          created_at?: string
+          expiration?: string
+          expires_at?: string | null
+          id?: string
+          language?: string
+          password_hash?: string | null
+          view_count?: number
+          viewed?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
