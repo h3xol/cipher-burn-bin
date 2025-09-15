@@ -47,16 +47,35 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
+        // CipherBin custom colors
+        neon: {
+          green: "hsl(var(--neon-green))",
+          cyan: "hsl(var(--neon-cyan))",
+          purple: "hsl(var(--neon-purple))",
         },
+        terminal: {
+          bg: "hsl(var(--terminal-bg))",
+          border: "hsl(var(--terminal-border))",
+        },
+        code: {
+          bg: "hsl(var(--code-bg))",
+        },
+      },
+      fontFamily: {
+        mono: ['JetBrains Mono', 'Fira Code', 'Monaco', 'monospace'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      backgroundImage: {
+        'gradient-primary': 'var(--gradient-primary)',
+        'gradient-border': 'var(--gradient-border)',
+        'gradient-glow': 'var(--gradient-glow)',
+      },
+      boxShadow: {
+        'neon': 'var(--shadow-neon)',
+        'glow': 'var(--shadow-glow)',
+      },
+      transitionTimingFunction: {
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
       borderRadius: {
         lg: "var(--radius)",
