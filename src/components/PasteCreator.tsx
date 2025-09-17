@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Shield, Lock, Timer, Flame, Key, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,8 +52,8 @@ const PasteCreator = () => {
         .insert({
           content: encryptedContent,
           language,
-          expiration: expiration === 'burn' ? 'burn' : expiration,
-          burn_after_reading: expiration === 'burn',
+          expiration: burnAfterReading ? 'burn' : expiration,
+          burn_after_reading: burnAfterReading,
           password_hash: passwordHash
         })
         .select()
@@ -92,6 +93,9 @@ const PasteCreator = () => {
     setContent("");
     setPassword("");
     setPasteUrl("");
+    setBurnAfterReading(false);
+    setExpiration("1h");
+    setLanguage("text");
   };
 
   if (pasteUrl) {
@@ -224,8 +228,12 @@ const PasteCreator = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="expiration">Expiration</Label>
-                <Select value={expiration} onValueChange={setExpiration}>
+                <Label htmlFor="expiration">Expiration Time</Label>
+                <Select 
+                  value={expiration} 
+                  onValueChange={setExpiration}
+                  disabled={burnAfterReading}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -248,14 +256,27 @@ const PasteCreator = () => {
                         24 Hours
                       </div>
                     </SelectItem>
-                    <SelectItem value="burn">
-                      <div className="flex items-center">
-                        <Flame className="mr-2 h-4 w-4" />
-                        Burn After Reading
-                      </div>
-                    </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="burn" className="flex items-center text-base font-medium">
+                    <Flame className="mr-2 h-4 w-4 text-orange-500" />
+                    Burn After Reading
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Permanently delete the paste after it's viewed once
+                  </p>
+                </div>
+                <Switch
+                  id="burn"
+                  checked={burnAfterReading}
+                  onCheckedChange={setBurnAfterReading}
+                />
               </div>
             </div>
 
