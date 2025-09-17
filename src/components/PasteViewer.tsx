@@ -118,11 +118,25 @@ const PasteViewer = () => {
 
       // Update view status and handle burn after reading
       if (pasteData.burn_after_reading) {
+        // Mark as viewed first
         await supabase
           .from('pastes')
           .update({ viewed: true })
           .eq('id', pasteData.id);
+        
+        // Then delete immediately for burn after reading
+        const { error: deleteError } = await supabase
+          .from('pastes')
+          .delete()
+          .eq('id', pasteData.id);
+
+        if (deleteError) {
+          console.error('Error deleting burned paste:', deleteError);
+        } else {
+          console.log('Paste burned after reading');
+        }
       } else {
+        // Just update view count for regular pastes
         await supabase
           .from('pastes')
           .update({ 
