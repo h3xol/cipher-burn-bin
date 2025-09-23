@@ -20,7 +20,7 @@ export type Database = {
           created_at: string
           details: string | null
           id: string
-          target_id: string | null
+          target_id: string
           target_type: string
           user_id: string
         }
@@ -29,7 +29,7 @@ export type Database = {
           created_at?: string
           details?: string | null
           id?: string
-          target_id?: string | null
+          target_id: string
           target_type: string
           user_id: string
         }
@@ -38,7 +38,7 @@ export type Database = {
           created_at?: string
           details?: string | null
           id?: string
-          target_id?: string | null
+          target_id?: string
           target_type?: string
           user_id?: string
         }
@@ -109,6 +109,20 @@ export type Database = {
           },
           {
             foreignKeyName: "bookings_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bookings_room"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bookings_room_type"
             columns: ["room_type_id"]
             isOneToOne: false
             referencedRelation: "room_types"
@@ -203,6 +217,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_messages_room"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "messages_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -232,6 +253,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_participants_room"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "participants_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -247,7 +275,11 @@ export type Database = {
           created_at: string
           expiration: string
           expires_at: string | null
+          file_name: string | null
+          file_size: number | null
+          file_type: string | null
           id: string
+          is_file: boolean | null
           language: string
           password_hash: string | null
           view_count: number
@@ -259,7 +291,11 @@ export type Database = {
           created_at?: string
           expiration?: string
           expires_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
           id?: string
+          is_file?: boolean | null
           language?: string
           password_hash?: string | null
           view_count?: number
@@ -271,7 +307,11 @@ export type Database = {
           created_at?: string
           expiration?: string
           expires_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
           id?: string
+          is_file?: boolean | null
           language?: string
           password_hash?: string | null
           view_count?: number
@@ -378,6 +418,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_rooms_room_type"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "rooms_room_type_id_fkey"
             columns: ["room_type_id"]
             isOneToOne: false
@@ -412,6 +459,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_thread_comments_thread"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_thread_comments_thread_id"
             columns: ["thread_id"]
