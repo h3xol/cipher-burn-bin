@@ -7,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Shield, Lock, Timer, Flame, Key, Copy } from "lucide-react";
+import { Shield, Lock, Timer, Flame, Key, Copy, Upload, FileIcon, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import CryptoJS from "crypto-js";
 
 const PasteCreator = () => {
   const [content, setContent] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [language, setLanguage] = useState("text");
   const [expiration, setExpiration] = useState("1h");
   const [burnAfterReading, setBurnAfterReading] = useState(false);
@@ -23,11 +24,31 @@ const PasteCreator = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 20 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "File size must be less than 20MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedFile(file);
+      setContent(''); // Clear text content when file is selected
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+  };
+
   const handleSubmit = async () => {
-    if (!content.trim()) {
+    if (!content.trim() && !selectedFile) {
       toast({
         title: "Error",
-        description: "Please enter some content to encrypt",
+        description: "Please enter content or select a file",
         variant: "destructive",
       });
       return;
@@ -36,9 +57,41 @@ const PasteCreator = () => {
     setIsSubmitting(true);
     
     try {
-      // Generate encryption key and encrypt content
+      // Generate encryption key
       const encryptionKey = CryptoJS.lib.WordArray.random(256/8).toString();
-      const encryptedContent = CryptoJS.AES.encrypt(content, encryptionKey).toString();
+      let encryptedContent = '';
+      let fileName = '';
+      let fileSize = 0;
+      let fileType = '';
+      let isFile = false;
+
+      if (selectedFile) {
+        // Handle file upload
+        isFile = true;
+        fileName = `${Date.now()}-${selectedFile.name}`;
+        fileSize = selectedFile.size;
+        fileType = selectedFile.type || 'application/octet-stream';
+
+        // Read file as ArrayBuffer and encrypt
+        const fileBuffer = await selectedFile.arrayBuffer();
+        const fileBytes = new Uint8Array(fileBuffer);
+        const fileBase64 = CryptoJS.enc.Base64.stringify(CryptoJS.lib.WordArray.create(fileBytes));
+        encryptedContent = CryptoJS.AES.encrypt(fileBase64, encryptionKey).toString();
+
+        // Also upload encrypted file to storage
+        const encryptedBlob = new Blob([encryptedContent], { type: 'application/octet-stream' });
+        const { error: storageError } = await supabase.storage
+          .from('encrypted-files')
+          .upload(fileName, encryptedBlob);
+
+        if (storageError) {
+          console.error('Storage upload error:', storageError);
+          throw new Error('Failed to upload file');
+        }
+      } else {
+        // Handle text content
+        encryptedContent = CryptoJS.AES.encrypt(content, encryptionKey).toString();
+      }
       
       // Hash password if provided
       let passwordHash = null;
@@ -51,10 +104,14 @@ const PasteCreator = () => {
         .from('pastes')
         .insert({
           content: encryptedContent,
-          language,
+          language: isFile ? 'file' : language,
           expiration: burnAfterReading ? 'burn' : expiration,
           burn_after_reading: burnAfterReading,
-          password_hash: passwordHash
+          password_hash: passwordHash,
+          is_file: isFile,
+          file_name: isFile ? fileName : null,
+          file_size: isFile ? fileSize : null,
+          file_type: isFile ? fileType : null,
         })
         .select()
         .single();
@@ -66,8 +123,8 @@ const PasteCreator = () => {
       setPasteUrl(url);
       
       toast({
-        title: "Paste encrypted successfully!",
-        description: "Your secure paste has been created",
+        title: isFile ? "File encrypted successfully!" : "Paste encrypted successfully!",
+        description: isFile ? "Your secure file has been uploaded" : "Your secure paste has been created",
       });
     } catch (error) {
       console.error('Error creating paste:', error);
@@ -85,12 +142,13 @@ const PasteCreator = () => {
     navigator.clipboard.writeText(pasteUrl);
     toast({
       title: "Copied!",
-      description: "Paste URL copied to clipboard",
+      description: "URL copied to clipboard",
     });
   };
 
   const createAnother = () => {
     setContent("");
+    setSelectedFile(null);
     setPassword("");
     setPasteUrl("");
     setBurnAfterReading(false);
@@ -110,7 +168,7 @@ const PasteCreator = () => {
               </h1>
             </div>
             <p className="text-lg text-muted-foreground">
-              Your secure paste has been created!
+              Your secure {selectedFile ? 'file' : 'paste'} has been created!
             </p>
           </div>
 
@@ -118,7 +176,7 @@ const PasteCreator = () => {
             <CardHeader>
               <CardTitle className="flex items-center text-neon-green">
                 <Shield className="mr-2 h-5 w-5" />
-                Paste Created Successfully
+                {selectedFile ? 'File' : 'Paste'} Created Successfully
               </CardTitle>
               <CardDescription>
                 Share this link with anyone who needs access to your encrypted content
@@ -126,7 +184,7 @@ const PasteCreator = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label>Your Secure Paste URL</Label>
+                <Label>Your Secure {selectedFile ? 'File' : 'Paste'} URL</Label>
                 <div className="flex gap-2">
                   <Input
                     value={pasteUrl}
@@ -153,13 +211,13 @@ const PasteCreator = () => {
                   variant="outline"
                   className="border-terminal-border hover:bg-neon-green/10"
                 >
-                  Create Another Paste
+                  Create Another {selectedFile ? 'File Share' : 'Paste'}
                 </Button>
                 <Button
                   onClick={() => window.open(pasteUrl, '_blank')}
                   className="neon-glow bg-neon-green text-primary-foreground hover:bg-neon-green/90"
                 >
-                  View Paste
+                  View {selectedFile ? 'File' : 'Paste'}
                 </Button>
               </div>
             </CardContent>
@@ -180,7 +238,7 @@ const PasteCreator = () => {
             </h1>
           </div>
           <p className="text-lg text-muted-foreground">
-            Secure, encrypted, and anonymous paste sharing
+            Secure, encrypted, and anonymous paste and file sharing
           </p>
         </div>
 
@@ -188,45 +246,153 @@ const PasteCreator = () => {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Lock className="mr-2 h-5 w-5 text-neon-green" />
-              Create Encrypted Paste
+              Create Encrypted {selectedFile ? 'File Share' : 'Paste'}
             </CardTitle>
             <CardDescription>
               Your content will be encrypted client-side before transmission
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Content Type Selection */}
             <div className="space-y-2">
-              <Label htmlFor="content">Content to encrypt</Label>
-              <Textarea
-                id="content"
-                placeholder="Enter your text, code, or sensitive data here..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="min-h-[300px] font-mono bg-code-bg border-terminal-border resize-none"
-              />
+              <Label>Content Type</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={!selectedFile ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setContent('');
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  Text
+                </Button>
+                <Label htmlFor="file-upload" className="cursor-pointer">
+                  <Button
+                    type="button"
+                    variant={selectedFile ? "default" : "outline"}
+                    size="sm"
+                    className="flex items-center gap-2"
+                    asChild
+                  >
+                    <span>
+                      <Upload className="w-4 h-4" />
+                      File (max 20MB)
+                    </span>
+                  </Button>
+                </Label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="*/*"
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="language">Language / Format</Label>
-                <Select value={language} onValueChange={setLanguage}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">Plain Text</SelectItem>
-                    <SelectItem value="javascript">JavaScript</SelectItem>
-                    <SelectItem value="typescript">TypeScript</SelectItem>
-                    <SelectItem value="python">Python</SelectItem>
-                    <SelectItem value="bash">Bash</SelectItem>
-                    <SelectItem value="json">JSON</SelectItem>
-                    <SelectItem value="yaml">YAML</SelectItem>
-                    <SelectItem value="sql">SQL</SelectItem>
-                    <SelectItem value="markdown">Markdown</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Selected File Display */}
+            {selectedFile && (
+              <div className="p-4 border border-terminal-border rounded-lg bg-primary/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileIcon className="w-8 h-8 text-neon-green" />
+                    <div>
+                      <p className="font-medium">{selectedFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={removeFile}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
+            )}
 
+            {/* Text Content - only show if no file selected */}
+            {!selectedFile && (
+              <div className="space-y-2">
+                <Label htmlFor="content">Content to encrypt</Label>
+                <Textarea
+                  id="content"
+                  placeholder="Enter your text, code, or sensitive data here..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="min-h-[300px] font-mono bg-code-bg border-terminal-border resize-none"
+                />
+              </div>
+            )}
+
+            {/* Language Selection - only for text */}
+            {!selectedFile && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="language">Language / Format</Label>
+                  <Select value={language} onValueChange={setLanguage}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">Plain Text</SelectItem>
+                      <SelectItem value="javascript">JavaScript</SelectItem>
+                      <SelectItem value="typescript">TypeScript</SelectItem>
+                      <SelectItem value="python">Python</SelectItem>
+                      <SelectItem value="bash">Bash</SelectItem>
+                      <SelectItem value="json">JSON</SelectItem>
+                      <SelectItem value="yaml">YAML</SelectItem>
+                      <SelectItem value="sql">SQL</SelectItem>
+                      <SelectItem value="markdown">Markdown</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expiration">Expiration Time</Label>
+                  <Select 
+                    value={expiration} 
+                    onValueChange={setExpiration}
+                    disabled={burnAfterReading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10m">
+                        <div className="flex items-center">
+                          <Timer className="mr-2 h-4 w-4" />
+                          10 Minutes
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="1h">
+                        <div className="flex items-center">
+                          <Timer className="mr-2 h-4 w-4" />
+                          1 Hour
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="24h">
+                        <div className="flex items-center">
+                          <Timer className="mr-2 h-4 w-4" />
+                          24 Hours
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* For files, show expiration selection differently */}
+            {selectedFile && (
               <div className="space-y-2">
                 <Label htmlFor="expiration">Expiration Time</Label>
                 <Select 
@@ -259,7 +425,7 @@ const PasteCreator = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            )}
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -269,7 +435,7 @@ const PasteCreator = () => {
                     Burn After Reading
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Permanently delete the paste after it's viewed once
+                    Permanently delete the {selectedFile ? 'file' : 'paste'} after it's viewed once
                   </p>
                 </div>
                 <Switch
@@ -288,7 +454,7 @@ const PasteCreator = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter a password to protect this paste (optional)"
+                placeholder={`Enter a password to protect this ${selectedFile ? 'file' : 'paste'} (optional)`}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="bg-code-bg border-terminal-border"
@@ -300,12 +466,12 @@ const PasteCreator = () => {
 
             <Button 
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || (!content.trim() && !selectedFile)}
               className="w-full neon-glow bg-neon-green text-primary-foreground hover:bg-neon-green/90"
               size="lg"
             >
               <Shield className="mr-2 h-5 w-5" />
-              {isSubmitting ? "Creating..." : "Encrypt & Create Secure Paste"}
+              {isSubmitting ? "Encrypting..." : selectedFile ? "Encrypt & Upload File" : "Encrypt & Create Secure Paste"}
             </Button>
           </CardContent>
         </Card>

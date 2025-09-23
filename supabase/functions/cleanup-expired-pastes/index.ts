@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     // Delete pastes that have expired by time
     const { data: expiredPastes, error: selectError } = await supabase
       .from('pastes')
-      .select('id')
+      .select('id, is_file, file_name')
       .not('expires_at', 'is', null)
       .lt('expires_at', new Date().toISOString());
 
@@ -32,6 +32,20 @@ Deno.serve(async (req) => {
     }
 
     if (expiredPastes && expiredPastes.length > 0) {
+      // Delete files from storage first
+      for (const paste of expiredPastes) {
+        if (paste.is_file && paste.file_name) {
+          console.log(`Deleting expired file: ${paste.file_name}`);
+          const { error: storageError } = await supabase.storage
+            .from('encrypted-files')
+            .remove([paste.file_name]);
+          
+          if (storageError) {
+            console.error(`Error deleting expired file ${paste.file_name}:`, storageError);
+          }
+        }
+      }
+
       const { error: deleteError } = await supabase
         .from('pastes')
         .delete()
@@ -48,7 +62,7 @@ Deno.serve(async (req) => {
     // Delete pastes that were marked as burn-after-reading and have been viewed
     const { data: burnedPastes, error: burnSelectError } = await supabase
       .from('pastes')
-      .select('id')
+      .select('id, is_file, file_name')
       .eq('burn_after_reading', true)
       .eq('viewed', true);
 
@@ -58,6 +72,20 @@ Deno.serve(async (req) => {
     }
 
     if (burnedPastes && burnedPastes.length > 0) {
+      // Delete files from storage first
+      for (const paste of burnedPastes) {
+        if (paste.is_file && paste.file_name) {
+          console.log(`Deleting burned file: ${paste.file_name}`);
+          const { error: storageError } = await supabase.storage
+            .from('encrypted-files')
+            .remove([paste.file_name]);
+          
+          if (storageError) {
+            console.error(`Error deleting burned file ${paste.file_name}:`, storageError);
+          }
+        }
+      }
+
       const { error: burnDeleteError } = await supabase
         .from('pastes')
         .delete()

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Copy, Eye, Flame, Clock, FileText, Key, AlertTriangle } from "lucide-react";
+import { Shield, Copy, Eye, Flame, Clock, FileText, Key, AlertTriangle, Download, FileIcon } from "lucide-react";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useToast } from "@/hooks/use-toast";
@@ -124,7 +124,18 @@ const PasteViewer = () => {
           .update({ viewed: true })
           .eq('id', pasteData.id);
         
-        // Then delete immediately for burn after reading
+        // Delete the file from storage if it's a file
+        if (pasteData.is_file && pasteData.file_name) {
+          const { error: storageError } = await supabase.storage
+            .from('encrypted-files')
+            .remove([pasteData.file_name]);
+          
+          if (storageError) {
+            console.error('Error deleting burned file:', storageError);
+          }
+        }
+        
+        // Then delete the database record
         const { error: deleteError } = await supabase
           .from('pastes')
           .delete()
@@ -182,6 +193,42 @@ const PasteViewer = () => {
     });
   };
 
+  const downloadFile = () => {
+    if (!paste.is_file || !decryptedContent) return;
+
+    try {
+      // Convert base64 back to binary
+      const fileData = CryptoJS.enc.Base64.parse(decryptedContent);
+      const fileBytes = new Uint8Array(fileData.sigBytes);
+      
+      for (let i = 0; i < fileData.sigBytes; i++) {
+        fileBytes[i] = (fileData.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+      }
+
+      const blob = new Blob([fileBytes], { type: paste.file_type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = paste.file_name?.split('-').slice(1).join('-') || 'download';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download started",
+        description: "File download has begun",
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download failed",
+        description: "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getExpirationBadge = (expiration: string, expiresAt: string) => {
     if (expiration === 'burn') {
       return <Badge variant="destructive"><Flame className="mr-1 h-3 w-3" />Burn After Reading</Badge>;
@@ -211,7 +258,7 @@ const PasteViewer = () => {
               </h1>
             </div>
             <p className="text-lg text-muted-foreground">
-              {isDecrypting ? "Decrypting your secure paste..." : "Loading..."}
+              {isDecrypting ? "Decrypting your secure content..." : "Loading..."}
             </p>
           </div>
           
@@ -240,7 +287,7 @@ const PasteViewer = () => {
               </h1>
             </div>
             <p className="text-lg text-muted-foreground">
-              This paste is password protected
+              This {paste?.is_file ? 'file' : 'paste'} is password protected
             </p>
           </div>
           
@@ -251,7 +298,7 @@ const PasteViewer = () => {
                 Password Required
               </CardTitle>
               <CardDescription>
-                Enter the password to decrypt and view this paste
+                Enter the password to decrypt and view this {paste?.is_file ? 'file' : 'paste'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -260,7 +307,7 @@ const PasteViewer = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter the paste password"
+                  placeholder="Enter the password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-code-bg border-terminal-border"
@@ -282,7 +329,7 @@ const PasteViewer = () => {
                 className="w-full neon-glow bg-neon-green text-primary-foreground hover:bg-neon-green/90"
               >
                 <Key className="mr-2 h-4 w-4" />
-                Decrypt Paste
+                Decrypt {paste?.is_file ? 'File' : 'Paste'}
               </Button>
               
               <Button
@@ -290,7 +337,7 @@ const PasteViewer = () => {
                 variant="outline"
                 className="w-full border-terminal-border hover:bg-neon-green/10"
               >
-                Create New Paste
+                Create New {paste?.is_file ? 'File Share' : 'Paste'}
               </Button>
             </CardContent>
           </Card>
@@ -346,7 +393,7 @@ const PasteViewer = () => {
             </h1>
           </div>
           <p className="text-lg text-muted-foreground">
-            Secure, encrypted paste viewer
+            Secure, encrypted {paste.is_file ? 'file' : 'paste'} viewer
           </p>
         </div>
 
@@ -354,11 +401,17 @@ const PasteViewer = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center">
-                <FileText className="mr-2 h-5 w-5 text-neon-green" />
-                Encrypted Paste
+                {paste.is_file ? (
+                  <FileIcon className="mr-2 h-5 w-5 text-neon-green" />
+                ) : (
+                  <FileText className="mr-2 h-5 w-5 text-neon-green" />
+                )}
+                Encrypted {paste.is_file ? 'File' : 'Paste'}
               </CardTitle>
               <div className="flex gap-2 flex-wrap">
-                <Badge variant="secondary">{paste.language}</Badge>
+                <Badge variant="secondary">
+                  {paste.is_file ? 'File' : paste.language}
+                </Badge>
                 {getExpirationBadge(paste.expiration, paste.expires_at)}
                 {paste.password_hash && (
                   <Badge variant="outline">
@@ -370,47 +423,88 @@ const PasteViewer = () => {
             </div>
             <CardDescription>
               Content decrypted successfully • Created {new Date(paste.created_at).toLocaleString()}
+              {paste.is_file && (
+                <span> • {(paste.file_size / 1024 / 1024).toFixed(2)} MB</span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Content</h3>
-              <Button
-                onClick={copyToClipboard}
-                variant="outline"
-                size="sm"
-                className="border-terminal-border hover:bg-neon-green/10"
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                Copy
-              </Button>
+              <h3 className="text-lg font-semibold">
+                {paste.is_file ? 'File' : 'Content'}
+              </h3>
+              <div className="flex gap-2">
+                {paste.is_file ? (
+                  <Button
+                    onClick={downloadFile}
+                    variant="outline"
+                    size="sm"
+                    className="border-terminal-border hover:bg-neon-green/10"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={copyToClipboard}
+                    variant="outline"
+                    size="sm"
+                    className="border-terminal-border hover:bg-neon-green/10"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy
+                  </Button>
+                )}
+              </div>
             </div>
             
-            <div className="rounded-lg overflow-hidden border border-terminal-border">
-              {paste.language === "text" ? (
-                <pre className="p-4 bg-code-bg text-foreground font-mono text-sm whitespace-pre-wrap overflow-x-auto">
-                  {decryptedContent}
-                </pre>
-              ) : (
-                <SyntaxHighlighter
-                  language={paste.language}
-                  style={atomDark}
-                  customStyle={{
-                    margin: 0,
-                    background: 'hsl(var(--code-bg))',
-                    fontSize: '14px',
-                  }}
+            {paste.is_file ? (
+              <div className="p-8 border border-terminal-border rounded-lg bg-code-bg text-center">
+                <FileIcon className="h-16 w-16 text-neon-green mx-auto mb-4" />
+                <h4 className="text-xl font-semibold mb-2">
+                  {paste.file_name?.split('-').slice(1).join('-') || 'Encrypted File'}
+                </h4>
+                <p className="text-muted-foreground mb-4">
+                  Size: {(paste.file_size / 1024 / 1024).toFixed(2)} MB
+                </p>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Click the download button above to save this encrypted file to your device
+                </p>
+                <Button
+                  onClick={downloadFile}
+                  className="neon-glow bg-neon-green text-primary-foreground hover:bg-neon-green/90"
                 >
-                  {decryptedContent}
-                </SyntaxHighlighter>
-              )}
-            </div>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download File
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-lg overflow-hidden border border-terminal-border">
+                {paste.language === "text" ? (
+                  <pre className="p-4 bg-code-bg text-foreground font-mono text-sm whitespace-pre-wrap overflow-x-auto">
+                    {decryptedContent}
+                  </pre>
+                ) : (
+                  <SyntaxHighlighter
+                    language={paste.language}
+                    style={atomDark}
+                    customStyle={{
+                      margin: 0,
+                      background: 'hsl(var(--code-bg))',
+                      fontSize: '14px',
+                    }}
+                  >
+                    {decryptedContent}
+                  </SyntaxHighlighter>
+                )}
+              </div>
+            )}
 
             {paste.burn_after_reading && (
               <Alert className="border-destructive bg-destructive/10">
                 <Flame className="h-4 w-4" />
                 <AlertDescription className="text-destructive">
-                  This paste will be permanently deleted after viewing.
+                  This {paste.is_file ? 'file' : 'paste'} will be permanently deleted after viewing.
                 </AlertDescription>
               </Alert>
             )}
@@ -421,7 +515,7 @@ const PasteViewer = () => {
                 variant="outline"
                 className="border-terminal-border hover:bg-neon-green/10"
               >
-                Create New Paste
+                Create New {paste.is_file ? 'File Share' : 'Paste'}
               </Button>
             </div>
           </CardContent>
