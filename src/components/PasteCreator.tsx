@@ -27,10 +27,10 @@ const PasteCreator = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 200 * 1024) {
+      if (file.size > 15 * 1024 * 1024) {
         toast({
           title: "File too large",
-          description: "File size must be less than 200KB",
+          description: "File size must be less than 15MB",
           variant: "destructive",
         });
         return;
@@ -49,6 +49,16 @@ const PasteCreator = () => {
       toast({
         title: "Error",
         description: "Please enter content or select a file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check text content size limit (20KB)
+    if (!selectedFile && content.length > 20 * 1024) {
+      toast({
+        title: "Text too large",
+        description: "Text content must be less than 20KB",
         variant: "destructive",
       });
       return;
@@ -286,7 +296,7 @@ const PasteCreator = () => {
                   >
                     <span>
                       <Upload className="w-4 h-4" />
-                      File (max 200KB)
+                      File (max 15MB)
                     </span>
                   </Button>
                 </Label>
@@ -329,7 +339,7 @@ const PasteCreator = () => {
             {/* Text Content - only show if no file selected */}
             {!selectedFile && (
               <div className="space-y-2">
-                <Label htmlFor="content">Content to encrypt</Label>
+                <Label htmlFor="content">Content to encrypt (max 20KB)</Label>
                 <Textarea
                   id="content"
                   placeholder="Enter your text, code, or sensitive data here..."
