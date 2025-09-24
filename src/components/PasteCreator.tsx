@@ -54,11 +54,11 @@ const PasteCreator = () => {
       return;
     }
 
-    // Check text content size limit (20KB)
-    if (!selectedFile && content.length > 20 * 1024) {
+    // Check text content size limit (500k characters)
+    if (!selectedFile && content.length > 500000) {
       toast({
         title: "Text too large",
-        description: "Text content must be less than 20KB",
+        description: "Text content must be less than 500k characters (~0.5 MB)",
         variant: "destructive",
       });
       return;
@@ -339,7 +339,7 @@ const PasteCreator = () => {
             {/* Text Content - only show if no file selected */}
             {!selectedFile && (
               <div className="space-y-2">
-                <Label htmlFor="content">Content to encrypt (max 20KB)</Label>
+                <Label htmlFor="content">Content to encrypt (max 500k characters)</Label>
                 <Textarea
                   id="content"
                   placeholder="Enter your text, code, or sensitive data here..."
