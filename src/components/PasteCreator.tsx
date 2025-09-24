@@ -27,10 +27,10 @@ const PasteCreator = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 20 * 1024 * 1024) {
+      if (file.size > 200 * 1024) {
         toast({
           title: "File too large",
-          description: "File size must be less than 20MB",
+          description: "File size must be less than 200KB",
           variant: "destructive",
         });
         return;
@@ -286,7 +286,7 @@ const PasteCreator = () => {
                   >
                     <span>
                       <Upload className="w-4 h-4" />
-                      File (max 20MB)
+                      File (max 200KB)
                     </span>
                   </Button>
                 </Label>
