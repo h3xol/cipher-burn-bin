@@ -1,8 +1,22 @@
-# Welcome to your Lovable project
+# SecurePaste
 
-## Project info
+A secure, encrypted paste sharing application built with React and Supabase. Share text, code, and files securely with end-to-end encryption, password protection, and automatic expiration.
 
-**URL**: https://lovable.dev/projects/3b0575dc-0c7a-4040-a488-5eecc199124a
+## Features
+
+- **End-to-End Encryption**: All content is encrypted client-side using AES encryption
+- **Password Protection**: Optional password protection for sensitive content
+- **File Support**: Upload and share files up to 15MB
+- **Text Sharing**: Share text content up to 500k characters (~0.5MB)
+- **Burn After Reading**: Content can be automatically deleted after first view
+- **Expiration Control**: Set custom expiration times (1 hour to 1 year, or never)
+- **Syntax Highlighting**: Automatic syntax highlighting for code snippets
+- **Dark/Light Theme**: Toggle between dark and light modes
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+
+## Project URL
+
+**Live App**: https://lovable.dev/projects/3b0575dc-0c7a-4040-a488-5eecc199124a
 
 ## How can I edit this code?
 
@@ -50,15 +64,32 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## How to Use
+
+1. **Create a Paste**: 
+   - Enter your text content or upload a file
+   - Optionally set a password for additional security
+   - Choose expiration time (1 hour to 1 year, or never)
+   - Enable "Burn after reading" if you want the paste to self-destruct after viewing
+   - Click "Create Encrypted Paste"
+
+2. **Share**: Copy the generated link and share it securely
+
+3. **View**: Recipients can view the paste using the link, enter password if required, and download files if applicable
+
+## Technologies Used
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Frontend**: React 18, TypeScript, Vite
+- **UI Components**: shadcn/ui, Radix UI primitives
+- **Styling**: Tailwind CSS with custom design system
+- **Backend**: Supabase (Database, Storage, Edge Functions)
+- **Encryption**: CryptoJS (AES encryption)
+- **Routing**: React Router DOM
+- **Syntax Highlighting**: react-syntax-highlighter
+- **State Management**: TanStack Query (React Query)
+- **Theme**: next-themes for dark/light mode
 
 ## How can I deploy this project?
 
