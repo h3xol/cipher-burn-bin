@@ -72,10 +72,17 @@ const PasteCreator = () => {
         fileSize = selectedFile.size;
         fileType = selectedFile.type || 'application/octet-stream';
 
-        // Read file as ArrayBuffer and encrypt
+        // Read file as ArrayBuffer and convert to base64 for encryption
         const fileBuffer = await selectedFile.arrayBuffer();
         const fileBytes = new Uint8Array(fileBuffer);
-        const fileBase64 = CryptoJS.enc.Base64.stringify(CryptoJS.lib.WordArray.create(fileBytes));
+        
+        // Convert to base64 string properly
+        let binary = '';
+        for (let i = 0; i < fileBytes.length; i++) {
+          binary += String.fromCharCode(fileBytes[i]);
+        }
+        const fileBase64 = btoa(binary);
+        
         encryptedContent = CryptoJS.AES.encrypt(fileBase64, encryptionKey).toString();
 
         // Also upload encrypted file to storage

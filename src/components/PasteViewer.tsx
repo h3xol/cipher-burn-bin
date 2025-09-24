@@ -197,19 +197,24 @@ const PasteViewer = () => {
     if (!paste.is_file || !decryptedContent) return;
 
     try {
-      // Convert base64 back to binary
-      const fileData = CryptoJS.enc.Base64.parse(decryptedContent);
-      const fileBytes = new Uint8Array(fileData.sigBytes);
+      // Convert base64 back to binary using proper method
+      const base64Data = decryptedContent;
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
       
-      for (let i = 0; i < fileData.sigBytes; i++) {
-        fileBytes[i] = (fileData.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
       }
 
-      const blob = new Blob([fileBytes], { type: paste.file_type });
+      const blob = new Blob([bytes], { type: paste.file_type || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = paste.file_name?.split('-').slice(1).join('-') || 'download';
+      
+      // Extract original filename by removing timestamp prefix
+      const originalName = paste.file_name?.replace(/^\d+-/, '') || 'download';
+      a.download = originalName;
+      
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -462,7 +467,7 @@ const PasteViewer = () => {
               <div className="p-8 border border-terminal-border rounded-lg bg-code-bg text-center">
                 <FileIcon className="h-16 w-16 text-neon-green mx-auto mb-4" />
                 <h4 className="text-xl font-semibold mb-2">
-                  {paste.file_name?.split('-').slice(1).join('-') || 'Encrypted File'}
+                  {paste.file_name?.replace(/^\d+-/, '') || 'Encrypted File'}
                 </h4>
                 <p className="text-muted-foreground mb-4">
                   Size: {(paste.file_size / 1024 / 1024).toFixed(2)} MB
