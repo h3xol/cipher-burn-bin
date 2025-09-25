@@ -101,12 +101,20 @@ Deno.serve(async (req) => {
 
     const totalDeleted = (expiredPastes?.length || 0) + (burnedPastes?.length || 0);
     
+    console.log(`Cleanup completed successfully:`, {
+      total_deleted: totalDeleted,
+      expired_pastes: expiredPastes?.length || 0,
+      burned_pastes: burnedPastes?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
         deleted: totalDeleted,
         expired: expiredPastes?.length || 0,
-        burned: burnedPastes?.length || 0
+        burned: burnedPastes?.length || 0,
+        timestamp: new Date().toISOString()
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -117,7 +125,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Cleanup function error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 
