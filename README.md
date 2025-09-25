@@ -1,104 +1,204 @@
-# SecurePaste
+<div align="center">
 
-A secure, encrypted paste sharing application built with React and Supabase. Share text, code, and files securely with end-to-end encryption, password protection, and automatic expiration.
+# 🔐 SecurePaste
 
-## Features
+<p align="center">
+  <strong>A secure, encrypted paste sharing application</strong>
+</p>
 
-- **End-to-End Encryption**: All content is encrypted client-side using AES encryption
-- **Password Protection**: Optional password protection for sensitive content
-- **File Support**: Upload and share files up to 15MB
-- **Text Sharing**: Share text content up to 500k characters (~0.5MB)
-- **Burn After Reading**: Content can be automatically deleted after first view
-- **Expiration Control**: Set custom expiration times (1 hour to 1 year, or never)
-- **Syntax Highlighting**: Automatic syntax highlighting for code snippets
-- **Dark/Light Theme**: Toggle between dark and light modes
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
+<p align="center">
+  <img src="https://img.shields.io/badge/React-18.3.1-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Vite-5.0-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+</p>
 
-## Project URL
+<p align="center">
+  <a href="https://lovable.dev/projects/3b0575dc-0c7a-4040-a488-5eecc199124a">🚀 Live Demo</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-tech-stack">Tech Stack</a>
+</p>
 
-**Live App**: https://lovable.dev/projects/3b0575dc-0c7a-4040-a488-5eecc199124a
+</div>
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 📖 About
 
-**Use Lovable**
+SecurePaste is a modern, secure paste sharing application that prioritizes privacy and security. Built with React and Supabase, it provides end-to-end encryption for all shared content, ensuring your sensitive data remains protected.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3b0575dc-0c7a-4040-a488-5eecc199124a) and start prompting.
+## ✨ Features
 
-Changes made via Lovable will be committed automatically to this repo.
+<table>
+<tr>
+<td>
 
-**Use your preferred IDE**
+### 🔒 Security First
+- **End-to-End Encryption**: AES client-side encryption
+- **Password Protection**: Optional password layers
+- **Burn After Reading**: Self-destructing content
+- **Zero-Knowledge**: Server never sees your data
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+</td>
+<td>
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🚀 Modern Experience  
+- **File Support**: Upload files up to 15MB
+- **Text Sharing**: Up to 500k characters (~0.5MB)
+- **Syntax Highlighting**: Code snippets with highlighting
+- **Responsive Design**: Perfect on any device
 
-Follow these steps:
+</td>
+</tr>
+<tr>
+<td>
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+### ⏰ Smart Controls
+- **Flexible Expiration**: 1 hour to 1 year, or never
+- **Custom Timeouts**: Set your own rules
+- **Auto-Cleanup**: Expired content removal
+
+</td>
+<td>
+
+### 🎨 Beautiful Interface
+- **Dark/Light Theme**: Toggle between modes
+- **Cyberpunk Aesthetic**: Modern neon design
+- **Smooth Animations**: Delightful interactions
+
+</td>
+</tr>
+</table>
+
+## 🌐 Live Application
+
+**🔗 [Try SecurePaste Now](https://lovable.dev/projects/3b0575dc-0c7a-4040-a488-5eecc199124a)**
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Git
+
+### Local Development
+
+```bash
+# Clone the repository
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Alternative Setup Methods
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+<details>
+<summary><strong>🔧 Development Options</strong></summary>
 
-**Use GitHub Codespaces**
+#### Via Lovable (Recommended)
+Simply visit the [Lovable Project](https://lovable.dev/projects/3b0575dc-0c7a-4040-a488-5eecc199124a) and start prompting. Changes are auto-committed.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+#### GitHub Codespaces
+1. Click the **Code** button → **Codespaces** tab
+2. Click **New codespace**
+3. Edit directly in the browser
 
-## How to Use
+#### Direct GitHub Editing
+Navigate to files and click the **Edit** (pencil) icon
 
-1. **Create a Paste**: 
-   - Enter your text content or upload a file
-   - Optionally set a password for additional security
-   - Choose expiration time (1 hour to 1 year, or never)
-   - Enable "Burn after reading" if you want the paste to self-destruct after viewing
-   - Click "Create Encrypted Paste"
+</details>
 
-2. **Share**: Copy the generated link and share it securely
+## 📱 How to Use
 
-3. **View**: Recipients can view the paste using the link, enter password if required, and download files if applicable
+<div align="center">
 
-## Technologies Used
+### Creating a Secure Paste
 
-This project is built with:
+</div>
 
-- **Frontend**: React 18, TypeScript, Vite
-- **UI Components**: shadcn/ui, Radix UI primitives
-- **Styling**: Tailwind CSS with custom design system
-- **Backend**: Supabase (Database, Storage, Edge Functions)
-- **Encryption**: CryptoJS (AES encryption)
-- **Routing**: React Router DOM
-- **Syntax Highlighting**: react-syntax-highlighter
-- **State Management**: TanStack Query (React Query)
-- **Theme**: next-themes for dark/light mode
+| Step | Action | Description |
+|------|--------|-------------|
+| **1** | 📝 **Content** | Enter text (up to 500k chars) or upload files (up to 15MB) |
+| **2** | 🔐 **Security** | Optionally add password protection |
+| **3** | ⏰ **Expiration** | Set timeframe (1 hour - 1 year, or never) |
+| **4** | 🔥 **Burn Setting** | Enable self-destruct after first view |
+| **5** | 🚀 **Create** | Click "Create Encrypted Paste" |
+| **6** | 🔗 **Share** | Copy the secure link and share |
 
-## How can I deploy this project?
+## 🛠️ Tech Stack
 
-Simply open [Lovable](https://lovable.dev/projects/3b0575dc-0c7a-4040-a488-5eecc199124a) and click on Share -> Publish.
+<div align="center">
 
-## Can I connect a custom domain to my Lovable project?
+### Frontend
+![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat-square&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-5.0+-646CFF?style=flat-square&logo=vite)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4+-06B6D4?style=flat-square&logo=tailwindcss)
 
-Yes, you can!
+### UI & Components
+![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-Latest-000000?style=flat-square)
+![Radix UI](https://img.shields.io/badge/Radix_UI-Latest-8B5CF6?style=flat-square)
+![Lucide Icons](https://img.shields.io/badge/Lucide-Icons-F56565?style=flat-square)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Backend & Database
+![Supabase](https://img.shields.io/badge/Supabase-Latest-3ECF8E?style=flat-square&logo=supabase)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-336791?style=flat-square&logo=postgresql)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Security & Utilities
+![CryptoJS](https://img.shields.io/badge/CryptoJS-AES-FF6B6B?style=flat-square)
+![React Query](https://img.shields.io/badge/TanStack_Query-5.0+-FF4154?style=flat-square)
+![React Router](https://img.shields.io/badge/React_Router-6.0+-CA4245?style=flat-square)
+
+</div>
+
+## 🚀 Deployment
+
+### Quick Deploy with Lovable
+1. Open [Lovable Project](https://lovable.dev/projects/3b0575dc-0c7a-4040-a488-5eecc199124a)
+2. Click **Share** → **Publish**
+3. Your app is live! 🎉
+
+### Custom Domain Setup
+1. Navigate to **Project** → **Settings** → **Domains**
+2. Click **Connect Domain**
+3. Follow the setup wizard
+
+> 📚 [Custom Domain Guide](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## 🤝 Contributing
+
+We welcome contributions! Please feel free to submit a Pull Request.
+
+### Development Guidelines
+- Follow the existing code style
+- Add tests for new features
+- Update documentation as needed
+- Ensure all checks pass
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 💡 Support
+
+Having issues? Check out:
+- [Lovable Documentation](https://docs.lovable.dev/)
+- [Project Issues](https://github.com/your-username/securepaste/issues)
+- [Lovable Discord](https://discord.gg/lovable)
+
+---
+
+<div align="center">
+
+**Made with ❤️ using [Lovable](https://lovable.dev)**
+
+⭐ Star this repo if you find it helpful!
+
+</div>
