@@ -13,7 +13,7 @@ const Footer = () => {
             variant="ghost"
             size="sm"
             className="flex items-center gap-2"
-            onClick={() => window.open("https://github.com", "_blank")}
+            onClick={() => window.open("https://github.com/h3xol/", "_blank")}
           >
             <Github className="h-4 w-4" />
             GitHub

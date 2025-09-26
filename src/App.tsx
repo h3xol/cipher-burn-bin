@@ -9,7 +9,6 @@ import PasteCreator from "./components/PasteCreator";
 import PasteViewer from "./components/PasteViewer";
 import NotFound from "./pages/NotFound";
 import Footer from "./components/Footer";
-import DatabaseSelector from "./components/DatabaseSelector";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +32,7 @@ const App = () => (
               </Routes>
             </main>
             <Footer />
-            <DatabaseSelector />
+           
           </div>
         </BrowserRouter>
       </TooltipProvider>
