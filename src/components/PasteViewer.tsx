@@ -10,7 +10,7 @@ import { Shield, Copy, Eye, Flame, Clock, FileText, Key, AlertTriangle, Download
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getDatabase } from "@/lib/database";
 import CryptoJS from "crypto-js";
 
 const PasteViewer = () => {
@@ -34,12 +34,9 @@ const PasteViewer = () => {
       }
 
       try {
-        // Get paste from Supabase
-        const { data, error: fetchError } = await supabase
-          .from('pastes')
-          .select('*')
-          .eq('id', id)
-          .single();
+        // Get paste from database
+        const db = getDatabase();
+        const { data, error: fetchError } = await db.getPaste(id);
 
         if (fetchError || !data) {
           setError("Paste not found or has expired");
@@ -117,18 +114,14 @@ const PasteViewer = () => {
       setPasswordRequired(false);
 
       // Update view status and handle burn after reading
+      const db = getDatabase();
       if (pasteData.burn_after_reading) {
         // Mark as viewed first
-        await supabase
-          .from('pastes')
-          .update({ viewed: true })
-          .eq('id', pasteData.id);
+        await db.updatePaste(pasteData.id, { viewed: true });
         
         // Delete the file from storage if it's a file
         if (pasteData.is_file && pasteData.file_name) {
-          const { error: storageError } = await supabase.storage
-            .from('encrypted-files')
-            .remove([pasteData.file_name]);
+          const { error: storageError } = await db.deleteFile('encrypted-files', pasteData.file_name);
           
           if (storageError) {
             console.error('Error deleting burned file:', storageError);
@@ -136,10 +129,7 @@ const PasteViewer = () => {
         }
         
         // Then delete the database record
-        const { error: deleteError } = await supabase
-          .from('pastes')
-          .delete()
-          .eq('id', pasteData.id);
+        const { error: deleteError } = await db.deletePaste(pasteData.id);
 
         if (deleteError) {
           console.error('Error deleting burned paste:', deleteError);
@@ -148,12 +138,9 @@ const PasteViewer = () => {
         }
       } else {
         // Just update view count for regular pastes
-        await supabase
-          .from('pastes')
-          .update({ 
-            view_count: (pasteData.view_count || 0) + 1 
-          })
-          .eq('id', pasteData.id);
+        await db.updatePaste(pasteData.id, { 
+          view_count: (pasteData.view_count || 0) + 1 
+        });
       }
 
       setLoading(false);

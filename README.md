@@ -82,6 +82,17 @@ SecurePaste is a modern, secure paste sharing application that prioritizes priva
 
 - Node.js 18+ and npm
 - Git
+- **Optional**: PostgreSQL 12+ (for standalone database)
+
+### Database Options
+
+SecurePaste supports two database backends:
+
+#### Option 1: Supabase (Default) 
+✅ **Recommended for beginners** - No setup required, everything works out of the box.
+
+#### Option 2: PostgreSQL (Self-hosted)
+🔧 **For advanced users** - Full control over your data and infrastructure.
 
 ### Local Development
 
@@ -96,6 +107,68 @@ npm install
 # Start development server
 npm run dev
 ```
+
+#### Setting up PostgreSQL (Optional)
+
+If you want to use PostgreSQL instead of Supabase:
+
+1. **Install PostgreSQL** (see [PostgreSQL Setup](#postgresql-setup))
+2. **Set up the API server** (see [API Server Setup](#api-server-setup))
+3. **Configure the frontend** using the database selector in the app
+
+<details>
+<summary><strong>📋 Detailed PostgreSQL Setup</strong></summary>
+
+##### Install PostgreSQL
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+```
+
+**macOS:**
+```bash
+brew install postgresql
+brew services start postgresql
+```
+
+**Windows:**
+Download from [postgresql.org](https://www.postgresql.org/download/)
+
+##### Create Database
+```bash
+sudo -u postgres psql
+CREATE DATABASE securepaste;
+CREATE USER securepaste_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE securepaste TO securepaste_user;
+\q
+```
+
+##### Setup API Server
+```bash
+cd postgres-api
+npm install
+cp .env.example .env
+# Edit .env with your database credentials
+psql -U securepaste_user -d securepaste -f schema.sql
+npm run dev
+```
+
+The API will run on `http://localhost:3001`
+
+</details>
+
+### Switching Between Databases
+
+Once the app is running, you can switch between Supabase and PostgreSQL:
+
+1. **Open the app** in your browser
+2. **Click the database selector** button (bottom-right corner)
+3. **Choose your preferred database**:
+   - **Supabase**: Works immediately, no setup required
+   - **PostgreSQL**: Requires API server setup (see above)
 
 ### Alternative Setup Methods
 
@@ -147,9 +220,11 @@ Navigate to files and click the **Edit** (pencil) icon
 ![Radix UI](https://img.shields.io/badge/Radix_UI-Latest-8B5CF6?style=flat-square)
 ![Lucide Icons](https://img.shields.io/badge/Lucide-Icons-F56565?style=flat-square)
 
-### Backend & Database
+### Backend & Database Options
 ![Supabase](https://img.shields.io/badge/Supabase-Latest-3ECF8E?style=flat-square&logo=supabase)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-336791?style=flat-square&logo=postgresql)
+![Node.js](https://img.shields.io/badge/Node.js-API-339933?style=flat-square&logo=node.js)
+![Express](https://img.shields.io/badge/Express-4.18+-000000?style=flat-square&logo=express)
 
 ### Security & Utilities
 ![CryptoJS](https://img.shields.io/badge/CryptoJS-AES-FF6B6B?style=flat-square)
@@ -157,6 +232,37 @@ Navigate to files and click the **Edit** (pencil) icon
 ![React Router](https://img.shields.io/badge/React_Router-6.0+-CA4245?style=flat-square)
 
 </div>
+
+## 🗄️ Database Architecture
+
+SecurePaste supports **dual database backends** for maximum flexibility:
+
+<table>
+<tr>
+<td width="50%">
+
+### 🚀 Supabase (Managed)
+- **✅ Zero Configuration** - Works out of the box
+- **🔒 Built-in Auth** - User management included  
+- **📁 File Storage** - Integrated file handling
+- **🌐 Edge Functions** - Serverless compute
+- **📊 Real-time** - Live updates support
+- **🎯 Perfect for**: Rapid prototyping, production apps
+
+</td>
+<td width="50%">
+
+### 🔧 PostgreSQL (Self-hosted)
+- **🎛️ Full Control** - Complete data ownership
+- **💰 Cost Effective** - No vendor lock-in
+- **🔐 Enhanced Privacy** - Your infrastructure
+- **⚡ Custom Logic** - Direct database access
+- **📈 Scalable** - Horizontal scaling options
+- **🎯 Perfect for**: Enterprise, compliance, custom needs
+
+</td>
+</tr>
+</table>
 
 ## 🚀 Deployment
 

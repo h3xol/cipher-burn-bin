@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Shield, Lock, Timer, Flame, Key, Copy, Upload, FileIcon, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getDatabase } from "@/lib/database";
 import CryptoJS from "crypto-js";
 
 const PasteCreator = () => {
@@ -97,9 +97,8 @@ const PasteCreator = () => {
 
         // Also upload encrypted file to storage
         const encryptedBlob = new Blob([encryptedContent], { type: 'application/octet-stream' });
-        const { error: storageError } = await supabase.storage
-          .from('encrypted-files')
-          .upload(fileName, encryptedBlob);
+        const db = getDatabase();
+        const { error: storageError } = await db.uploadFile('encrypted-files', fileName, encryptedBlob);
 
         if (storageError) {
           console.error('Storage upload error:', storageError);
@@ -116,10 +115,9 @@ const PasteCreator = () => {
         passwordHash = CryptoJS.SHA256(password).toString();
       }
       
-      // Save to Supabase
-      const { data, error } = await supabase
-        .from('pastes')
-        .insert({
+      // Save to database
+      const db = getDatabase();
+      const { data, error } = await db.insertPaste({
           content: encryptedContent,
           language: isFile ? 'file' : language,
           expiration: burnAfterReading ? 'burn' : expiration,
@@ -129,9 +127,7 @@ const PasteCreator = () => {
           file_name: isFile ? fileName : null,
           file_size: isFile ? fileSize : null,
           file_type: isFile ? fileType : null,
-        })
-        .select()
-        .single();
+        });
       
       if (error) throw error;
       
