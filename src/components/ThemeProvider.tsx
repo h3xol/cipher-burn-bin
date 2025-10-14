@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react"
+import { safeLocalStorage } from "@/lib/consent"
 
 type Theme = "dark" | "light" | "system"
 
@@ -28,7 +29,7 @@ export function ThemeProvider({
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem(storageKey) as Theme) || defaultTheme
+      return (safeLocalStorage.getItem(storageKey) as Theme) || defaultTheme
     }
     return defaultTheme
   })
@@ -54,7 +55,7 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
+      safeLocalStorage.setItem(storageKey, theme)
       setTheme(theme)
     },
   }

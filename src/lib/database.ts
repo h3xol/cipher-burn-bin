@@ -1,5 +1,6 @@
 // Database abstraction layer supporting both Supabase and PostgreSQL
 import { supabase } from "@/integrations/supabase/client";
+import { safeLocalStorage } from "./consent";
 
 // Database provider types
 export type DatabaseProvider = 'supabase' | 'postgres';
@@ -18,13 +19,13 @@ export interface DatabaseConfig {
 
 // Get database provider from environment
 export const getDatabaseProvider = (): DatabaseProvider => {
-  const provider = localStorage.getItem('database_provider') || 'supabase';
+  const provider = safeLocalStorage.getItem('database_provider') || 'supabase';
   return provider as DatabaseProvider;
 };
 
 // Set database provider
 export const setDatabaseProvider = (provider: DatabaseProvider) => {
-  localStorage.setItem('database_provider', provider);
+  safeLocalStorage.setItem('database_provider', provider);
   window.location.reload(); // Reload to apply changes
 };
 
@@ -73,7 +74,7 @@ class PostgresClient implements DatabaseClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = localStorage.getItem('postgres_api_url') || 'http://localhost:3001/api';
+    this.baseUrl = safeLocalStorage.getItem('postgres_api_url') || 'http://localhost:3001/api';
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
@@ -159,13 +160,13 @@ export const getDatabase = (): DatabaseClient => {
 
 // Database configuration utilities
 export const isPostgresConfigured = (): boolean => {
-  return !!localStorage.getItem('postgres_api_url');
+  return !!safeLocalStorage.getItem('postgres_api_url');
 };
 
 export const configurePostgres = (apiUrl: string) => {
-  localStorage.setItem('postgres_api_url', apiUrl);
+  safeLocalStorage.setItem('postgres_api_url', apiUrl);
 };
 
 export const getPostgresConfig = () => {
-  return localStorage.getItem('postgres_api_url');
+  return safeLocalStorage.getItem('postgres_api_url');
 };
