@@ -19,14 +19,13 @@ export interface DatabaseConfig {
 
 // Get database provider from environment
 export const getDatabaseProvider = (): DatabaseProvider => {
-  const provider = safeLocalStorage.getItem('database_provider') || 'supabase';
+  const provider = import.meta.env.VITE_DATABASE_PROVIDER || 'supabase';
   return provider as DatabaseProvider;
 };
 
 // Set database provider
 export const setDatabaseProvider = (provider: DatabaseProvider) => {
-  safeLocalStorage.setItem('database_provider', provider);
-  window.location.reload(); // Reload to apply changes
+  console.warn('Database provider should be set in .env file using VITE_DATABASE_PROVIDER');
 };
 
 // Database interface for common operations
@@ -74,7 +73,7 @@ class PostgresClient implements DatabaseClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = safeLocalStorage.getItem('postgres_api_url') || 'http://localhost:3001/api';
+    this.baseUrl = import.meta.env.VITE_POSTGRES_API_URL || 'http://localhost:3001/api';
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
@@ -160,13 +159,13 @@ export const getDatabase = (): DatabaseClient => {
 
 // Database configuration utilities
 export const isPostgresConfigured = (): boolean => {
-  return !!safeLocalStorage.getItem('postgres_api_url');
+  return !!import.meta.env.VITE_POSTGRES_API_URL;
 };
 
 export const configurePostgres = (apiUrl: string) => {
-  safeLocalStorage.setItem('postgres_api_url', apiUrl);
+  console.warn('PostgreSQL API URL should be set in .env file using VITE_POSTGRES_API_URL');
 };
 
 export const getPostgresConfig = () => {
-  return safeLocalStorage.getItem('postgres_api_url');
+  return import.meta.env.VITE_POSTGRES_API_URL || null;
 };
