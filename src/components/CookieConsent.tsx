@@ -34,12 +34,12 @@ const CookieConsent = () => {
             Cookie & Storage Notice
           </CardTitle>
           <CardDescription>
-            We use local storage to save your preferences and improve your experience.
+            We use local storage to save your theme preference.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           <p>
-            This site stores data locally in your browser to remember your theme preference and database selection. 
+            This site stores your theme preference (dark/light mode) locally in your browser. 
             No personal data is collected or shared with third parties.
           </p>
         </CardContent>
