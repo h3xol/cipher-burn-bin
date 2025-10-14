@@ -9,6 +9,7 @@ import PasteCreator from "./components/PasteCreator";
 import PasteViewer from "./components/PasteViewer";
 import NotFound from "./pages/NotFound";
 import Footer from "./components/Footer";
+import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
 
@@ -32,7 +33,7 @@ const App = () => (
               </Routes>
             </main>
             <Footer />
-           
+            <CookieConsent />
           </div>
         </BrowserRouter>
       </TooltipProvider>
