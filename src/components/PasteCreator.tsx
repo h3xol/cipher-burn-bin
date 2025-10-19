@@ -176,7 +176,7 @@ const PasteCreator = () => {
           <div className="mb-8 text-center">
             <div className="mb-4 flex items-center justify-center">
               <Shield className="mr-2 h-8 w-8 text-neon-green" />
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-neon-green to-neon-cyan bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold hacking-text">
                 CipherBin
               </h1>
             </div>
@@ -246,7 +246,7 @@ const PasteCreator = () => {
         <div className="mb-8 text-center">
           <div className="mb-4 flex items-center justify-center">
             <Shield className="mr-2 h-8 w-8 text-neon-green" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-neon-green to-neon-cyan bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold hacking-text">
               CipherBin
             </h1>
           </div>
