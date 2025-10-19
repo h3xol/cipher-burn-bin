@@ -126,6 +126,50 @@ All colors MUST be HSL.
   }
 }
 
+@layer utilities {
+  @keyframes glitch {
+    0%, 100% {
+      text-shadow: 
+        2px 2px hsl(var(--neon-cyan) / 0.7),
+        -2px -2px hsl(var(--neon-purple) / 0.7);
+    }
+    25% {
+      text-shadow: 
+        -2px 2px hsl(var(--neon-cyan) / 0.7),
+        2px -2px hsl(var(--neon-purple) / 0.7);
+    }
+    50% {
+      text-shadow: 
+        2px -2px hsl(var(--neon-cyan) / 0.7),
+        -2px 2px hsl(var(--neon-purple) / 0.7);
+    }
+    75% {
+      text-shadow: 
+        -2px -2px hsl(var(--neon-cyan) / 0.7),
+        2px 2px hsl(var(--neon-purple) / 0.7);
+    }
+  }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    41%, 43% { opacity: 0.8; }
+    45%, 47% { opacity: 0.9; }
+    49% { opacity: 1; }
+  }
+
+  .hacking-text {
+    animation: glitch 3s infinite, flicker 5s infinite;
+    color: hsl(var(--neon-green));
+    text-shadow: 
+      0 0 10px hsl(var(--neon-green) / 0.8),
+      0 0 20px hsl(var(--neon-green) / 0.6),
+      2px 2px hsl(var(--neon-cyan) / 0.5),
+      -2px -2px hsl(var(--neon-purple) / 0.5);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    letter-spacing: 0.05em;
+  }
+}
+
 @layer components {
   .neon-glow {
     box-shadow: var(--shadow-neon);
