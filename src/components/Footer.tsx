@@ -1,4 +1,4 @@
-import { Github } from "lucide-react";
+import { Github, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Footer = () => {
@@ -9,15 +9,26 @@ const Footer = () => {
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} CipherBin. All rights reserved.
           </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-2"
-            onClick={() => window.open("https://github.com/h3xol/", "_blank")}
-          >
-            <Github className="h-4 w-4" />
-            GitHub
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => window.open("https://discord.gg/yourserver", "_blank")}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Discord
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => window.open("https://github.com/h3xol/", "_blank")}
+            >
+              <Github className="h-4 w-4" />
+              GitHub
+            </Button>
+          </div>
         </div>
       </div>
     </footer>
