@@ -1,12 +1,8 @@
--- SecurePaste PostgreSQL Schema
--- Run this to set up your PostgreSQL database
+-- SecurePaste PostgreSQL Schema for containerized setup
+-- Assumes the database is already created (POSTGRES_DB)
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE DATABASE securepaste;
-\c securepaste;
-
--- Create pastes table
 CREATE TABLE IF NOT EXISTS pastes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     content TEXT NOT NULL,
@@ -37,17 +33,25 @@ END;
 $$ language 'plpgsql';
 
 -- Create trigger to automatically update updated_at
-CREATE TRIGGER update_pastes_updated_at
-    BEFORE UPDATE ON pastes
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'update_pastes_updated_at'
+    ) THEN
+        CREATE TRIGGER update_pastes_updated_at
+            BEFORE UPDATE ON pastes
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END;
+$$;
 
 -- Create indexes for better performance
-CREATE INDEX idx_pastes_expires_at ON pastes(expires_at);
-CREATE INDEX idx_pastes_burn_viewed ON pastes(burn_after_reading, viewed);
-CREATE INDEX idx_pastes_created_at ON pastes(created_at);
+CREATE INDEX IF NOT EXISTS idx_pastes_expires_at ON pastes(expires_at);
+CREATE INDEX IF NOT EXISTS idx_pastes_burn_viewed ON pastes(burn_after_reading, viewed);
+CREATE INDEX IF NOT EXISTS idx_pastes_created_at ON pastes(created_at);
 
--- Create cleanup function (optional - can be called by cron job)
+-- Cleanup helper (optional)
 CREATE OR REPLACE FUNCTION cleanup_expired_pastes()
 RETURNS INTEGER AS $$
 DECLARE

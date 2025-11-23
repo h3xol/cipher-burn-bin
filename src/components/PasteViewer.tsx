@@ -6,12 +6,24 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Copy, Eye, Flame, Clock, FileText, Key, AlertTriangle, Download, FileIcon } from "lucide-react";
+import { Shield, Copy, Flame, Clock, FileText, Key, AlertTriangle, Download, FileIcon } from "lucide-react";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useToast } from "@/hooks/use-toast";
 import { getDatabase } from "@/lib/database";
-import CryptoJS from "crypto-js";
+import { decryptBinary, decryptText, derivePasswordHash, EncryptedPayload } from "@/lib/encryption";
+
+const parseEncryptedPayload = (value: string): EncryptedPayload | null => {
+  try {
+    const parsed = JSON.parse(value);
+    if (parsed && parsed.iv && parsed.salt && parsed.mac && parsed.version) {
+      return parsed;
+    }
+  } catch (err) {
+    console.error("Failed to parse encrypted payload", err);
+  }
+  return null;
+};
 
 const PasteViewer = () => {
   const { id } = useParams();
@@ -20,6 +32,7 @@ const PasteViewer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [decryptedContent, setDecryptedContent] = useState("");
+  const [decryptedFile, setDecryptedFile] = useState<Uint8Array | null>(null);
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [password, setPassword] = useState("");
   const [isDecrypting, setIsDecrypting] = useState(false);
@@ -89,28 +102,56 @@ const PasteViewer = () => {
 
   const decryptPaste = async (pasteData: any, encryptionKey: string, userPassword?: string) => {
     try {
+      setError("");
       setIsDecrypting(true);
 
       // Check password if required
       if (pasteData.password_hash && userPassword) {
-        const passwordHash = CryptoJS.SHA256(userPassword).toString();
-        if (passwordHash !== pasteData.password_hash) {
+        const derived = await derivePasswordHash(
+          userPassword,
+          pasteData.password_salt || undefined,
+          pasteData.password_iterations || undefined,
+        );
+        if (derived.hashHex !== pasteData.password_hash) {
           setError("Incorrect password");
           setIsDecrypting(false);
           return;
         }
       }
 
-      // Decrypt content
-      const decrypted = CryptoJS.AES.decrypt(pasteData.content, encryptionKey).toString(CryptoJS.enc.Utf8);
-      
-      if (!decrypted) {
-        setError("Failed to decrypt content - invalid key");
+      const payload = parseEncryptedPayload(pasteData.content);
+      if (!payload) {
+        setError("Encrypted payload is invalid or unsupported");
         setIsDecrypting(false);
+        setLoading(false);
         return;
       }
 
-      setDecryptedContent(decrypted);
+      const storagePath = payload.storagePath || pasteData.file_name;
+
+      if (pasteData.is_file) {
+        const db = getDatabase();
+        const { data: encryptedBlob, error: downloadError } = await db.downloadFile(
+          'encrypted-files',
+          storagePath,
+        );
+
+        if (downloadError || !encryptedBlob) {
+          setError("Failed to download encrypted file");
+          setIsDecrypting(false);
+          setLoading(false);
+          return;
+        }
+
+        const encryptedBytes = new Uint8Array(await encryptedBlob.arrayBuffer());
+        const decryptedBytes = await decryptBinary(payload, encryptionKey, encryptedBytes);
+        setDecryptedFile(decryptedBytes);
+        setDecryptedContent("");
+      } else {
+        const decrypted = await decryptText(payload, encryptionKey);
+        setDecryptedContent(decrypted);
+        setDecryptedFile(null);
+      }
       setPasswordRequired(false);
 
       // Update view status and handle burn after reading
@@ -120,8 +161,8 @@ const PasteViewer = () => {
         await db.updatePaste(pasteData.id, { viewed: true });
         
         // Delete the file from storage if it's a file
-        if (pasteData.is_file && pasteData.file_name) {
-          const { error: storageError } = await db.deleteFile('encrypted-files', pasteData.file_name);
+        if (pasteData.is_file && storagePath) {
+          const { error: storageError } = await db.deleteFile('encrypted-files', storagePath);
           
           if (storageError) {
             console.error('Error deleting burned file:', storageError);
@@ -162,6 +203,7 @@ const PasteViewer = () => {
       });
       return;
     }
+    setError("");
 
     const encryptionKey = window.location.hash.substring(1);
     if (!encryptionKey) {
@@ -181,19 +223,10 @@ const PasteViewer = () => {
   };
 
   const downloadFile = () => {
-    if (!paste.is_file || !decryptedContent) return;
+    if (!paste.is_file || !decryptedFile) return;
 
     try {
-      // Convert base64 back to binary using proper method
-      const base64Data = decryptedContent;
-      const binaryString = atob(base64Data);
-      const bytes = new Uint8Array(binaryString.length);
-      
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-
-      const blob = new Blob([bytes], { type: paste.file_type || 'application/octet-stream' });
+      const blob = new Blob([decryptedFile], { type: paste.file_type || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

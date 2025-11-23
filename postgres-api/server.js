@@ -19,13 +19,29 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || 'password',
 });
 
+// Ensure DB schema is up to date (idempotent)
+async function ensureSchema() {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      ALTER TABLE IF EXISTS pastes
+        ADD COLUMN IF NOT EXISTS password_salt TEXT,
+        ADD COLUMN IF NOT EXISTS password_iterations INTEGER;
+    `);
+  } finally {
+    client.release();
+  }
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // File storage setup
+const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
+
 const storage = multer.diskStorage({
-  destination: './uploads/',
+  destination: uploadsDir,
   filename: (req, file, cb) => {
     cb(null, uuidv4() + path.extname(file.originalname));
   }
@@ -33,7 +49,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Ensure uploads directory exists
-const uploadsDir = './uploads';
 fs.mkdir(uploadsDir, { recursive: true }).catch(console.error);
 
 // Routes
@@ -64,6 +79,8 @@ app.post('/api/pastes', async (req, res) => {
       expiration = '1h',
       burn_after_reading = false,
       password_hash = null,
+      password_salt = null,
+      password_iterations = null,
       is_file = false,
       file_name = null,
       file_type = null,
@@ -95,12 +112,12 @@ app.post('/api/pastes', async (req, res) => {
     const result = await pool.query(`
       INSERT INTO pastes (
         id, content, language, expiration, burn_after_reading, 
-        password_hash, is_file, file_name, file_type, file_size, expires_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        password_hash, password_salt, password_iterations, is_file, file_name, file_type, file_size, expires_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
     `, [
       id, content, language, expiration, burn_after_reading,
-      password_hash, is_file, file_name, file_type, file_size, expires_at
+      password_hash, password_salt, password_iterations, is_file, file_name, file_type, file_size, expires_at
     ]);
 
     res.json(result.rows[0]);
@@ -158,7 +175,7 @@ app.delete('/api/pastes/:id', async (req, res) => {
     
     // Delete file if exists
     if (paste.is_file && paste.file_name) {
-      const filePath = path.join(uploadsDir, paste.file_name);
+      const filePath = path.join(uploadsDir, 'encrypted-files', paste.file_name);
       try {
         await fs.unlink(filePath);
       } catch (fileError) {
@@ -196,6 +213,20 @@ app.post('/api/storage/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// File download
+app.get('/api/storage/:bucket/:filename', async (req, res) => {
+  try {
+    const { bucket, filename } = req.params;
+    const filePath = path.join(uploadsDir, bucket, filename);
+    const fileBuffer = await fs.readFile(filePath);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.send(fileBuffer);
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    res.status(404).json({ error: 'File not found' });
+  }
+});
+
 // File deletion
 app.delete('/api/storage/:bucket/:filename', async (req, res) => {
   try {
@@ -215,44 +246,51 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Cleanup expired pastes
-app.post('/api/cleanup', async (req, res) => {
-  try {
-    const now = new Date();
-    
-    // Get expired pastes
-    const expiredResult = await pool.query(`
-      SELECT * FROM pastes 
-      WHERE expires_at IS NOT NULL AND expires_at < $1
-    `, [now]);
-    
-    // Get burned pastes
-    const burnedResult = await pool.query(`
-      SELECT * FROM pastes 
-      WHERE burn_after_reading = true AND viewed = true
-    `);
-    
-    const allToDelete = [...expiredResult.rows, ...burnedResult.rows];
-    
-    // Delete files and database records
-    for (const paste of allToDelete) {
-      if (paste.is_file && paste.file_name) {
-        const filePath = path.join(uploadsDir, 'encrypted-files', paste.file_name);
-        try {
-          await fs.unlink(filePath);
-        } catch (fileError) {
-          console.error('Error deleting file:', fileError);
-        }
+const cleanupExpiredPastes = async () => {
+  const now = new Date();
+  
+  // Get expired pastes
+  const expiredResult = await pool.query(`
+    SELECT * FROM pastes 
+    WHERE expires_at IS NOT NULL AND expires_at < $1
+  `, [now]);
+  
+  // Get burned pastes
+  const burnedResult = await pool.query(`
+    SELECT * FROM pastes 
+    WHERE burn_after_reading = true AND viewed = true
+  `);
+  
+  const allToDelete = [...expiredResult.rows, ...burnedResult.rows];
+  
+  // Delete files and database records
+  for (const paste of allToDelete) {
+    if (paste.is_file && paste.file_name) {
+      const filePath = path.join(uploadsDir, 'encrypted-files', paste.file_name);
+      try {
+        await fs.unlink(filePath);
+      } catch (fileError) {
+        console.error('Error deleting file:', fileError);
       }
-      
-      await pool.query('DELETE FROM pastes WHERE id = $1', [paste.id]);
     }
     
+    await pool.query('DELETE FROM pastes WHERE id = $1', [paste.id]);
+  }
+
+  return {
+    deleted: allToDelete.length,
+    expired: expiredResult.rows.length,
+    burned: burnedResult.rows.length
+  };
+};
+
+// Cleanup expired pastes (manual trigger)
+app.post('/api/cleanup', async (req, res) => {
+  try {
+    const result = await cleanupExpiredPastes();
     res.json({
       success: true,
-      deleted: allToDelete.length,
-      expired: expiredResult.rows.length,
-      burned: burnedResult.rows.length
+      ...result
     });
   } catch (error) {
     console.error('Error during cleanup:', error);
@@ -260,6 +298,32 @@ app.post('/api/cleanup', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`SecurePaste PostgreSQL API running on port ${port}`);
-});
+// Background cleanup job
+const CLEANUP_INTERVAL_MS = parseInt(process.env.CLEANUP_INTERVAL_MS || `${15 * 60 * 1000}`, 10);
+let cleanupInProgress = false;
+
+setInterval(async () => {
+  if (cleanupInProgress) return;
+  cleanupInProgress = true;
+  try {
+    const result = await cleanupExpiredPastes();
+    if (result.deleted > 0) {
+      console.log(`Cleanup removed ${result.deleted} pastes (expired: ${result.expired}, burned: ${result.burned})`);
+    }
+  } catch (error) {
+    console.error('Scheduled cleanup failed:', error);
+  } finally {
+    cleanupInProgress = false;
+  }
+}, CLEANUP_INTERVAL_MS);
+
+ensureSchema()
+  .catch((err) => {
+    console.error('Schema check failed:', err);
+    process.exit(1);
+  })
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`SecurePaste PostgreSQL API running on port ${port}`);
+    });
+  });

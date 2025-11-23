@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Shield, Lock, Timer, Flame, Key, Copy, Upload, FileIcon, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getDatabase } from "@/lib/database";
-import CryptoJS from "crypto-js";
+import { EncryptedPayload, encryptBinary, encryptText, derivePasswordHash } from "@/lib/encryption";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const PasteCreator = () => {
   const [content, setContent] = useState("");
@@ -21,23 +21,25 @@ const PasteCreator = () => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pasteUrl, setPasteUrl] = useState("");
-  const navigate = useNavigate();
+  const [isDragActive, setIsDragActive] = useState(false);
   const { toast } = useToast();
+
+  const processFile = (file: File) => {
+    if (file.size > 15 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "File size must be less than 15MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedFile(file);
+    setContent("");
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 15 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "File size must be less than 15MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      setSelectedFile(file);
-      setContent(''); // Clear text content when file is selected
-    }
+    if (file) processFile(file);
   };
 
   const removeFile = () => {
@@ -67,14 +69,14 @@ const PasteCreator = () => {
     setIsSubmitting(true);
     
     try {
-      // Generate encryption key
-      const encryptionKey = CryptoJS.lib.WordArray.random(256/8).toString();
-      let encryptedContent = '';
+      let encryptionKey = "";
       let fileName = '';
       let fileSize = 0;
       let fileType = '';
       let isFile = false;
+      let contentForDatabase = "";
 
+      const db = getDatabase();
       if (selectedFile) {
         // Handle file upload
         isFile = true;
@@ -82,47 +84,53 @@ const PasteCreator = () => {
         fileSize = selectedFile.size;
         fileType = selectedFile.type || 'application/octet-stream';
 
-        // Read file as ArrayBuffer and convert to base64 for encryption
-        const fileBuffer = await selectedFile.arrayBuffer();
-        const fileBytes = new Uint8Array(fileBuffer);
-        
-        // Convert to base64 string properly
-        let binary = '';
-        for (let i = 0; i < fileBytes.length; i++) {
-          binary += String.fromCharCode(fileBytes[i]);
-        }
-        const fileBase64 = btoa(binary);
-        
-        encryptedContent = CryptoJS.AES.encrypt(fileBase64, encryptionKey).toString();
+        // Read file as ArrayBuffer and encrypt with AES-GCM + HMAC
+        const fileBuffer = new Uint8Array(await selectedFile.arrayBuffer());
+        const encrypted = await encryptBinary(fileBuffer);
+        encryptionKey = encrypted.key;
 
-        // Also upload encrypted file to storage
-        const encryptedBlob = new Blob([encryptedContent], { type: 'application/octet-stream' });
-        const db = getDatabase();
+        // Upload encrypted file to storage only (keep DB lean)
+        const encryptedBlob = new Blob([encrypted.ciphertext], { type: 'application/octet-stream' });
         const { error: storageError } = await db.uploadFile('encrypted-files', fileName, encryptedBlob);
 
         if (storageError) {
           console.error('Storage upload error:', storageError);
           throw new Error('Failed to upload file');
         }
+
+        const payload: EncryptedPayload = {
+          ...encrypted.payload,
+          storagePath: fileName,
+        };
+
+        contentForDatabase = JSON.stringify(payload);
       } else {
-        // Handle text content
-        encryptedContent = CryptoJS.AES.encrypt(content, encryptionKey).toString();
+        // Handle text content (ciphertext stored in DB)
+        const encrypted = await encryptText(content);
+        encryptionKey = encrypted.key;
+        contentForDatabase = JSON.stringify(encrypted.payload);
       }
       
       // Hash password if provided
       let passwordHash = null;
+      let passwordSalt = null;
+      let passwordIterations: number | null = null;
       if (password.trim()) {
-        passwordHash = CryptoJS.SHA256(password).toString();
+        const derived = await derivePasswordHash(password.trim());
+        passwordHash = derived.hashHex;
+        passwordSalt = derived.saltB64;
+        passwordIterations = derived.iterations;
       }
       
       // Save to database
-      const db = getDatabase();
       const { data, error } = await db.insertPaste({
-          content: encryptedContent,
+          content: contentForDatabase,
           language: isFile ? 'file' : language,
           expiration: burnAfterReading ? 'burn' : expiration,
           burn_after_reading: burnAfterReading,
           password_hash: passwordHash,
+          password_salt: passwordSalt,
+          password_iterations: passwordIterations,
           is_file: isFile,
           file_name: isFile ? fileName : null,
           file_size: isFile ? fileSize : null,
@@ -214,9 +222,15 @@ const PasteCreator = () => {
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  ⚠️ Save this URL - it contains the decryption key and cannot be recovered once lost
+                  Save this URL - it contains the decryption key and cannot be recovered once lost
                 </p>
               </div>
+              <Alert className="border-terminal-border bg-code-bg">
+                <AlertTitle>Keep this link safe</AlertTitle>
+                <AlertDescription>
+                  We never store the decryption key. Anyone with this URL can decrypt the {selectedFile ? 'file' : 'paste'}.
+                </AlertDescription>
+              </Alert>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
@@ -303,6 +317,63 @@ const PasteCreator = () => {
                   className="hidden"
                   accept="*/*"
                 />
+              </div>
+            </div>
+
+            {/* Drag & Drop area for files */}
+            <div
+              className={`rounded-lg border-2 border-dashed p-4 transition-colors ${
+                isDragActive ? 'border-neon-green bg-neon-green/5' : 'border-terminal-border'
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setIsDragActive(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragActive(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) processFile(file);
+              }}
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Drag & drop a file or click to browse</p>
+                  <p className="text-xs text-muted-foreground">
+                    Up to 15MB. Files are encrypted locally before upload.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="border-terminal-border hover:bg-neon-green/10"
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Choose File
+                  </Button>
+                  {selectedFile && (
+                    <div className="flex items-center gap-2 rounded-md border border-terminal-border px-3 py-1 text-sm">
+                      <FileIcon className="h-4 w-4 text-neon-green" />
+                      <span className="font-medium">{selectedFile.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={removeFile}
+                        className="h-8 w-8 text-muted-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

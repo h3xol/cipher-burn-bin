@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "CipherBin",
+      "Group": "Servers",
+      "Host": "db",
+      "Port": 5432,
+      "Username": "securepaste_user",
+      "MaintenanceDB": "securepaste",
+      "SSLMode": "prefer"
+    }
+  }
+}

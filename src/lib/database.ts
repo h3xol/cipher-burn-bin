@@ -1,9 +1,7 @@
-// Database abstraction layer supporting both Supabase and PostgreSQL
-import { supabase } from "@/integrations/supabase/client";
-import { safeLocalStorage } from "./consent";
+// Database abstraction layer (PostgreSQL only)
 
 // Database provider types
-export type DatabaseProvider = 'supabase' | 'postgres';
+export type DatabaseProvider = 'postgres';
 
 // Configuration interface
 export interface DatabaseConfig {
@@ -18,15 +16,7 @@ export interface DatabaseConfig {
 }
 
 // Get database provider from environment
-export const getDatabaseProvider = (): DatabaseProvider => {
-  const provider = import.meta.env.VITE_DATABASE_PROVIDER || 'supabase';
-  return provider as DatabaseProvider;
-};
-
-// Set database provider
-export const setDatabaseProvider = (provider: DatabaseProvider) => {
-  console.warn('Database provider should be set in .env file using VITE_DATABASE_PROVIDER');
-};
+export const getDatabaseProvider = (): DatabaseProvider => 'postgres';
 
 // Database interface for common operations
 export interface DatabaseClient {
@@ -39,33 +29,7 @@ export interface DatabaseClient {
   // Storage operations (for files)
   uploadFile: (bucket: string, path: string, file: Blob) => Promise<{ error: any }>;
   deleteFile: (bucket: string, path: string) => Promise<{ error: any }>;
-}
-
-// Supabase client implementation
-class SupabaseClient implements DatabaseClient {
-  async insertPaste(paste: any) {
-    return await supabase.from('pastes').insert(paste).select().single();
-  }
-
-  async getPaste(id: string) {
-    return await supabase.from('pastes').select('*').eq('id', id).single();
-  }
-
-  async updatePaste(id: string, updates: any) {
-    return await supabase.from('pastes').update(updates).eq('id', id);
-  }
-
-  async deletePaste(id: string) {
-    return await supabase.from('pastes').delete().eq('id', id);
-  }
-
-  async uploadFile(bucket: string, path: string, file: Blob) {
-    return await supabase.storage.from(bucket).upload(path, file);
-  }
-
-  async deleteFile(bucket: string, path: string) {
-    return await supabase.storage.from(bucket).remove([path]);
-  }
+  downloadFile: (bucket: string, path: string) => Promise<{ data: Blob | null; error: any }>;
 }
 
 // PostgreSQL client implementation (using REST API)
@@ -142,19 +106,23 @@ class PostgresClient implements DatabaseClient {
       method: 'DELETE',
     });
   }
+
+  async downloadFile(bucket: string, path: string) {
+    const response = await fetch(`${this.baseUrl}/storage/${bucket}/${path}`);
+
+    if (!response.ok) {
+      const error = await response.text();
+      return { data: null, error };
+    }
+
+    const blob = await response.blob();
+    return { data: blob, error: null };
+  }
 }
 
 // Get the appropriate database client
 export const getDatabase = (): DatabaseClient => {
-  const provider = getDatabaseProvider();
-  
-  switch (provider) {
-    case 'postgres':
-      return new PostgresClient();
-    case 'supabase':
-    default:
-      return new SupabaseClient();
-  }
+  return new PostgresClient();
 };
 
 // Database configuration utilities

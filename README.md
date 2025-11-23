@@ -188,6 +188,16 @@ Navigate to files and click the **Edit** (pencil) icon
 
 </details>
 
+## Docker (PostgreSQL)
+
+Postgres is now the only backend; run the full stack with Docker:
+
+1. Copy `.env.example` to `.env` if you also run the app outside Docker (only `VITE_POSTGRES_API_URL` matters).
+2. Start everything: `docker-compose up --build`.
+3. Services: frontend `http://localhost:4173`, API `http://localhost:3001/api`, Postgres `localhost:5432`, optional pgAdmin `http://localhost:5050`.
+4. Data/uploads persist via the `db-data`, `uploads`, and `pgadmin-data` volumes; schema seeds from `postgres-api/schema.init.sql`.
+5. If you change the API host/port, update `VITE_POSTGRES_API_URL` in `.env` and the `build.args` in `docker-compose.yml` to match.
+
 ## 📱 How to Use
 
 <div align="center">
